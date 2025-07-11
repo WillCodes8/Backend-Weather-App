@@ -10,6 +10,9 @@
     </head>
     <body>
         <h1>Welcome to the public demo page.</h1>
+        <h3>Here you can access all the functionality of this app except
+            <br > the favorites feature. Enjoy the app!
+        </h3>
         <script>
 
             async function getWeather(){
@@ -22,7 +25,47 @@
 
                 console.log(data)
 
-               document.getElementById("result").innerText = `Temp: ${data.current_weather.temperature}°C`
+                // Interpret Variables
+                function getPrecipitation(mm){
+                    if (mm == 0) return "No Precipitation"
+                    if (mm <= 1) return "Light Rain"
+                    if (mm <= 4) return "Moderate Rain"
+                    if (mm <= 7) return "Heavy Rain"
+                    return "Very Heavy Rain"
+                }
+
+                function getCloudCover(percent){
+                    if (percent < 10) return "Clear Skies"
+                    if (percent < 40) return "Mostly Clear"
+                    if (percent < 70) return "Partly Cloudy"
+                    if (percent < 90) return "Mostly Cloudly"
+                    return "Full Overcast"
+                }
+
+                function parseTime(timeString){
+                    const [date, time] = timeString.split('T')
+                    return {date, time}
+                }
+                
+                // Hourly Variables
+                const cloud = data.hourly.cloudcover[0]
+                const precipitation = data.hourly.precipitation[0]
+                const time = data.hourly.time[0]
+                const windspd = data.hourly.wind_speed_10m[0]
+                const temp = data.hourly.temperature_2m[0]
+
+                const timeData = parseTime(time)
+                const cloudData = getCloudCover(cloud)
+                const rainData = getPrecipitation(precipitation);
+
+                document.getElementById("result").innerHTML = `
+                    <p>Date: ${timeData.date}</p>
+                    <p>Time: ${timeData.time}</p>
+                    <p>Temperature: ${temp}°C</p>
+                    <p>Clouds: ${cloud}% (${cloudData})</p>
+                    <p>Precipitation: ${precipitation} mm (${rainData})</p>
+                    <p>Wind Speed: ${windspd} km/h</p>
+                `
             }
 
         </script>
@@ -30,11 +73,14 @@
         <form onsubmit="event.preventDefault(); getWeather();">
             <input id="lat" placeholder="Enter Latitude...">
             <input id="lon" placeholder="Enter Longitutde...">
-            <button type="submit">Get Temperature</button>
+            <button type="submit">Get Data</button>
         </form>
 
         <div id="result">
 
         </div>
+        <button id="publicHome" class="button-22">
+            <a href="/">HomePage</a>
+        </button>
     </body>
 </html>

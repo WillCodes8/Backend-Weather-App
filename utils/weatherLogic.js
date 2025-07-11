@@ -1,5 +1,5 @@
 async function getWeather(lat, lon){
-    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m&current_weather=true`
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&hourly=temperature_2m,precipitation,cloudcover,wind_speed_10m`
 
     try{
 
