@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
+const getWeather = require('./utils/weatherLogic');
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -16,6 +17,22 @@ app.get('/', (req, res) => {
 
 app.get('/public', (req, res) => {
   res.render('public', { title: 'Public Weather Page' });
+});
+
+app.get('/weather', async (req, res) => {
+  const { lat, lon } = req.query;
+  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon required' });
+
+  if (isNaN(lat) || isNaN(lon)) {
+    return res.status(400).json({ error: 'lat and lon must be valid numbers' });
+  }
+
+  try {
+    const data = await getWeather(lat, lon); 
+    res.json(data);
+  } catch {
+    res.status(500).json({ error: 'Failed to fetch weather' });
+  }
 });
 
 app.listen(port, () => {
