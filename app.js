@@ -19,6 +19,18 @@ app.get('/public', (req, res) => {
   res.render('public', { title: 'Public Weather Page' });
 });
 
+app.get('/login', (req, res) => {
+  res.render('login', { title: 'Login Page' });
+});
+
+app.get('/signup', (req, res) => {
+  res.render('signup', { title: 'Sign Up Page' });
+});
+
+app.get('/private', (req, res) => {
+  res.render('private', { title: 'Premium Weather Page' });
+});
+
 app.get('/weather', async (req, res) => {
   const { lat, lon } = req.query;
   if (!lat || !lon) return res.status(400).json({ error: 'lat and lon required' });
