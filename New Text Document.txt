@@ -1,0 +1,7 @@
+Weather App Test Users & Passwords
+
+#1:
+
+Name: USER1
+User: user1
+Pass: 123456

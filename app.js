@@ -19,7 +19,6 @@ app.use(session({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
@@ -66,6 +65,60 @@ app.get('/weather', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch weather' });
   }
 });
+
+const bcrypt = require('bcrypt'); 
+const pool = require('./db');
+
+app.post('/signup', async (req, res) => {
+    const {name, username, password} = req.body
+    try{
+        const existingUser = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
+
+        if (existingUser.rows.length > 0) {
+            return res.status(400).send('Username already taken. Please choose another.');
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 12)
+
+        await pool.query(
+            'INSERT INTO users (name, username, password) VALUES ($1, $2, $3)',
+            [name, username, hashedPassword]
+        )
+
+        res.redirect('/login');
+    } catch (err) {
+        console.error('Signup Error:', err);
+        res.status(500).send('Sign Up Failed Error: 500')
+    }
+})
+
+app.post('/login', async (req, res) => {
+    const {username, password} = req.body
+
+    try{
+        const result = await pool.query('SELECT * FROM users WHERE username = $1', [username])
+
+        if(result.rows.length === 0){
+            return res.status(400).send('Invaild Username or Password, Please Try Again')
+        }
+
+        const user = result.rows[0]
+
+        const validPassword = await bcrypt.compare(password, user.password)
+
+        if(!validPassword) {
+            return res.status(400).send('Invaild Username or Password, Please Try Again')
+        }
+
+        req.session.userId = user.id
+
+        res.redirect('/private');
+
+    } catch (err) {
+        console.error(err)
+        res.status(500).send('Login Failed')
+    }
+})
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
