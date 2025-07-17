@@ -13,9 +13,11 @@
 
         <form action="/signup" method="POST">
             <input type="text" name="name" placeholder="Name" required />
-            <input type="email" name="email" placeholder="Email" required />
+            <input type="text" name="username" placeholder="Username" required />
             <input type="password" name="password" placeholder="Password" required />
-            <button type="submit">Create Account</button>
+            <button type="submit">
+                <a href="/login">Create Account</a>
+            </button>
         </form>
 
         <p id="LoginQ">Already have an account?</p> 

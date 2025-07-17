@@ -1,9 +1,20 @@
 require('dotenv').config();
 const express = require('express');
+const session = require('express-session');
 const path = require('path');
 const app = express();
 const port = process.env.PORT || 3000;
 const getWeather = require('./utils/weatherLogic');
+const requireLogin = require('./middleware/authMiddleware');
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+}));
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -27,8 +38,17 @@ app.get('/signup', (req, res) => {
   res.render('signup', { title: 'Sign Up Page' });
 });
 
-app.get('/private', (req, res) => {
+app.get('/private', requireLogin, (req, res) => {
   res.render('private', { title: 'Premium Weather Page' });
+});
+
+app.get('/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).send('Logout failed');
+        }
+        res.redirect('/'); // or wherever you want the user to go
+    });
 });
 
 app.get('/weather', async (req, res) => {

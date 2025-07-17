@@ -11,9 +11,11 @@
     <body>
         <h1>Welcome to the Login Page</h1>
         <form action="/login" method="POST">
-            <input type="email" name="email" placeholder="Email" required />
+            <input type="text" name="username" placeholder="Username" required />
             <input type="password" name="password" placeholder="Password" required />
-            <button type="submit">Log In</button>
+            <button type="submit">
+                <a href="/private">Login</a>
+            </button>
         </form>
         <p id="SignInQ">Don't have an account?</p>
         <button class="button-22">
