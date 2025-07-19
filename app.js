@@ -7,14 +7,22 @@ const port = process.env.PORT || 3000;
 const getWeather = require('./utils/weatherLogic');
 const requireLogin = require('./middleware/authMiddleware');
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  cookie: { secure: false } 
 }));
+
+const cors = require('cors');
+
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true
+}));
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -119,6 +127,89 @@ app.post('/login', async (req, res) => {
         res.status(500).send('Login Failed')
     }
 })
+
+app.post('/favorites', requireLogin, async (req, res) => {
+    console.log('User ID from session:', req.session.userId);
+    console.log('Request body:', req.body);
+    
+    const { lat, lon } = req.body;
+
+    const latNum = parseFloat(lat);
+    const lonNum = parseFloat(lon);
+
+    if (isNaN(latNum) || isNaN(lonNum)) {
+        return res.status(400).send('Valid latitude and longitude required');
+    }
+
+    try {
+        await pool.query(
+            'INSERT INTO favorites (user_id, lat, lon) VALUES ($1, $2, $3)',
+            [req.session.userId, latNum, lonNum]
+        );
+        res.status(201).send('Favorite saved');
+    } catch (err) {
+      console.error('Error inserting into favorites:', {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      stack: err.stack,
+    });
+        console.error('Error inserting into favorites:', err);
+        res.status(500).send('Server error');
+    }
+});
+
+app.get('/favorites', requireLogin, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+
+    const result = await pool.query(
+      'SELECT lat, lon FROM favorites WHERE user_id = $1',
+      [userId]
+    );
+
+    const favorites = result.rows;
+
+    const weatherData = [];
+    for (const { lat, lon } of favorites) {
+      const data = await getWeather(lat, lon); 
+      weatherData.push({ lat, lon, data });
+    }
+
+    res.render('favorites', {
+      title: 'Your Saved Cities',
+      weatherData,
+    });
+
+  } catch (err) {
+    console.error('Error fetching favorites:', err);
+    res.status(500).send('Server error');
+  }
+});
+
+app.delete('/favorites', requireLogin, async (req, res) => {
+    const { lat, lon } = req.body;
+    const userId = req.session.userId;
+
+    if (!lat || !lon) {
+        return res.status(400).send('Latitude and longitude required');
+    }
+
+    try {
+        const result = await pool.query(
+            'DELETE FROM favorites WHERE user_id = $1 AND lat = $2 AND lon = $3',
+            [userId, lat, lon]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).send('Favorite not found');
+        }
+
+    } catch (err) {
+        console.error('Error deleting favorite:', err);
+        res.status(500).send('Failed to delete favorite');
+    }
+});
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);

@@ -11,9 +11,102 @@
     <body>
         <h1>Thanks for signing in. Enjoy the app!</h1>
 
+        <h2>Here you can add to your favorites.</h2>
+        <form onsubmit="return saveFavorite(event)" method="POST">
+            <input type="number" step="any" id="lat" name="lat" placeholder="Latitude" required>
+            <input type="number" step="any" id="lon" name="lon" placeholder="Longitude" required>
+            <button type="submit">Save to Favorites</button>
+        </form>
+
+        <h1>Your Saved Coordinates</h1>
+        <p id="saveMessage" style="color: green;"></p>
+
         <button class="button-22">
             <a href="/logout">Logout</a>
         </button>
-        <script src="" async defer></script>
+        <script>
+
+            async function getWeather(){
+
+                const lat = document.getElementById("lat").value
+                const lon = document.getElementById("lon").value
+
+                const response = await fetch(`/weather?lat=${lat}&lon=${lon}`)
+                const data = await response.json()
+
+                console.log(data)
+
+             
+                function getPrecipitation(mm){
+                    if (mm == 0) return "No Precipitation"
+                    if (mm <= 1) return "Light Rain"
+                    if (mm <= 4) return "Moderate Rain"
+                    if (mm <= 7) return "Heavy Rain"
+                    return "Very Heavy Rain"
+                }
+
+                function getCloudCover(percent){
+                    if (percent < 10) return "Clear Skies"
+                    if (percent < 40) return "Mostly Clear"
+                    if (percent < 70) return "Partly Cloudy"
+                    if (percent < 90) return "Mostly Cloudly"
+                    return "Full Overcast"
+                }
+
+                function parseTime(timeString){
+                    const [date, time] = timeString.split('T')
+                    return {date, time}
+                }
+                
+                // Hourly Variables
+                const cloud = data.hourly.cloudcover[0]
+                const precipitation = data.hourly.precipitation[0]
+                const time = data.hourly.time[0]
+                const windspd = data.hourly.wind_speed_10m[0]
+                const temp = data.hourly.temperature_2m[0]
+
+                const timeData = parseTime(time)
+                const cloudData = getCloudCover(cloud)
+                const rainData = getPrecipitation(precipitation);
+
+                document.getElementById("result").innerHTML = `
+                    <p>Date: ${timeData.date}</p>
+                    <p>Temperature: ${temp}°C</p>
+                    <p>Clouds: ${cloud}% (${cloudData})</p>
+                    <p>Precipitation: ${precipitation} mm (${rainData})</p>
+                    <p>Wind Speed: ${windspd} km/h</p>
+                `
+            }
+
+            async function saveFavorite(event) {
+                event.preventDefault();
+
+                const lat = document.getElementById("lat").value;
+                const lon = document.getElementById("lon").value;
+
+                try {
+                    const response = await fetch('/favorites', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ lat, lon }),
+                        credentials: 'include' 
+                    })
+                    
+                    if (response.ok) {
+                        document.getElementById("saveMessage").innerText = "Saved to favorites!";
+                    } else {
+                        const text = await response.text();
+                        document.getElementById("saveMessage").innerText = "Failed to save: " + text;
+                    }
+                } catch (err) {
+                    console.error("Error saving favorite:", err);
+                    document.getElementById("saveMessage").innerText = "Error saving favorite";
+                }
+
+                return false; // Prevents any default form behavior
+            }
+        </script>
     </body>
 </html>
