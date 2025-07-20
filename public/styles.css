@@ -79,3 +79,30 @@ a{
 .button-22:hover {
   background-color: #1C84FF;
 }
+
+.weather-card {
+  background-color: #f0f4f8;      /* light blue-gray background */
+  border-radius: 8px;             /* rounded corners */
+  padding: 15px 20px;             /* space inside the card */
+  margin-bottom: 20px;            /* space between cards */
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15); /* subtle shadow */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  max-width: 400px;
+  color: #333;                    /* dark text */
+  transition: box-shadow 0.3s ease;
+}
+
+.weather-card:hover {
+  box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+}
+
+.weather-card h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #0077b6;                /* nice blue for headings */
+}
+
+.weather-card p {
+  margin: 4px 0;
+  font-size: 14px;
+}

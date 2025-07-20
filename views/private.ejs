@@ -18,7 +18,40 @@
             <button type="submit">Save to Favorites</button>
         </form>
 
-        <h1>Your Saved Coordinates</h1>
+        <h1>Your Saved Coordinates, <%= username %></h1>
+        <% weatherData.forEach(entry => { 
+            const cloud = entry.data.hourly.cloudcover[0];
+            const precipitation = entry.data.hourly.precipitation[0];
+            const time = entry.data.hourly.time[0];
+            const windspd = entry.data.hourly.wind_speed_10m[0];
+            const temp = entry.data.hourly.temperature_2m[0];
+            const date = time.split('T')[0];
+
+            let cloudDescription = "";
+            if (cloud < 10) cloudDescription = "Clear Skies";
+            else if (cloud < 40) cloudDescription = "Mostly Clear";
+            else if (cloud < 70) cloudDescription = "Partly Cloudy";
+            else if (cloud < 90) cloudDescription = "Mostly Cloudy";
+            else cloudDescription = "Full Overcast";
+
+            let precipitationDescription = "";
+            if (precipitation == 0) precipitationDescription = "No Precipitation";
+            else if (precipitation <= 1) precipitationDescription = "Light Rain";
+            else if (precipitation <= 4) precipitationDescription = "Moderate Rain";
+            else if (precipitation <= 7) precipitationDescription = "Heavy Rain";
+            else precipitationDescription = "Very Heavy Rain";
+        %>
+            <div class="weather-card">
+                <h4>Location: <%= entry.lat %>, <%= entry.lon %></h4>
+                <p>Date: <%= date %></p>
+                <p>Temperature: <%= temp %>°C</p>
+                <p>Clouds: <%= cloud %>% (<%= cloudDescription %>)</p>
+                <p>Precipitation: <%= precipitation %> mm (<%= precipitationDescription %>)</p>
+                <p>Wind Speed: <%= windspd %> km/h</p>
+                <hr>
+                <button onclick="deleteFavorite('<%= entry.lat %>', '<%= entry.lon %>')">Delete Coordinates</button>
+            </div>
+        <% }); %>
         <p id="saveMessage" style="color: green;"></p>
 
         <button class="button-22">
@@ -106,6 +139,31 @@
                 }
 
                 return false; // Prevents any default form behavior
+            }
+
+            async function deleteFavorite(lat, lon) {
+                try {
+                const response = await fetch('/favorites', {
+                    method: 'DELETE',
+                    headers: {
+                    'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ lat, lon })
+                });
+
+                if (response.ok) {
+                    alert('Deleted favorite successfully.');
+                    // Reload page to refresh data
+                    location.reload();
+                } else {
+                    const errorText = await response.text();
+                    alert('Failed to delete: ' + errorText);
+                }
+                } catch (err) {
+                console.error('Error deleting favorite:', err);
+                alert('Error deleting favorite');
+                }
             }
         </script>
     </body>

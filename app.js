@@ -45,8 +45,26 @@ app.get('/signup', (req, res) => {
   res.render('signup', { title: 'Sign Up Page' });
 });
 
-app.get('/private', requireLogin, (req, res) => {
-  res.render('private', { title: 'Premium Weather Page' });
+app.get('/private', requireLogin, async (req, res) => {
+  
+  const userId = req.session.userId;
+  const query = 'SELECT lat, lon FROM favorites WHERE user_id = $1';
+  const result = await pool.query(query, [userId]);
+
+  const coordinates = result.rows;
+  const weatherData = [];
+
+  for (const entry of coordinates) {
+    const { lat, lon } = entry;
+    const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover,wind_speed_10m`);
+    const data = await response.json();
+    weatherData.push({ lat, lon, data });
+  }
+  const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
+  const username = userResult.rows[0]?.username || 'User';
+
+
+  res.render('private', { weatherData, username });
 });
 
 app.get('/logout', (req, res) => {
@@ -54,7 +72,7 @@ app.get('/logout', (req, res) => {
         if (err) {
             return res.status(500).send('Logout failed');
         }
-        res.redirect('/'); // or wherever you want the user to go
+        res.redirect('/'); 
     });
 });
 
@@ -159,56 +177,60 @@ app.post('/favorites', requireLogin, async (req, res) => {
     }
 });
 
-app.get('/favorites', requireLogin, async (req, res) => {
+app.get('/favorites', async (req, res) => {
   try {
-    const userId = req.session.userId;
 
-    const result = await pool.query(
-      'SELECT lat, lon FROM favorites WHERE user_id = $1',
-      [userId]
-    );
+    const userId = req.session.userId; 
+    const query = 'SELECT lat, lon FROM favorites WHERE user_id = $1';
+    const result = await pool.query(query, [userId]);
 
-    const favorites = result.rows;
+    const userResult = await pool.query('SELECT username FROM users WHERE id = $1', [userId]);
+    const username = userResult.rows[0]?.username || 'User';
+
+    const coordinates = result.rows;
 
     const weatherData = [];
-    for (const { lat, lon } of favorites) {
-      const data = await getWeather(lat, lon); 
+
+    for (const entry of coordinates) {
+      const { lat, lon } = entry;
+      const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation,cloudcover,wind_speed_10m`);
+      const data = await response.json();
       weatherData.push({ lat, lon, data });
     }
 
-    res.render('favorites', {
-      title: 'Your Saved Cities',
-      weatherData,
-    });
+    console.log("Weather data being rendered:", weatherData);
+    res.render('favorites', { weatherData, username });
 
-  } catch (err) {
-    console.error('Error fetching favorites:', err);
-    res.status(500).send('Server error');
+  } catch (error) {
+    console.error("Error loading favorites:", error);
+    res.status(500).send("Internal Server Error");
   }
 });
 
 app.delete('/favorites', requireLogin, async (req, res) => {
-    const { lat, lon } = req.body;
-    const userId = req.session.userId;
+  const { lat, lon } = req.body;
+  const userId = req.session.userId;
 
-    if (!lat || !lon) {
-        return res.status(400).send('Latitude and longitude required');
+  if (!lat || !lon) {
+    return res.status(400).send('Latitude and longitude required');
+  }
+
+  try {
+    const result = await pool.query(
+      'DELETE FROM favorites WHERE user_id = $1 AND lat = $2 AND lon = $3',
+      [userId, lat, lon]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).send('Favorite not found');
     }
 
-    try {
-        const result = await pool.query(
-            'DELETE FROM favorites WHERE user_id = $1 AND lat = $2 AND lon = $3',
-            [userId, lat, lon]
-        );
+    res.status(200).send('Favorite deleted');
 
-        if (result.rowCount === 0) {
-            return res.status(404).send('Favorite not found');
-        }
-
-    } catch (err) {
-        console.error('Error deleting favorite:', err);
-        res.status(500).send('Failed to delete favorite');
-    }
+  } catch (err) {
+    console.error('Error deleting favorite:', err);
+    res.status(500).send('Failed to delete favorite');
+  }
 });
 
 app.listen(port, () => {
